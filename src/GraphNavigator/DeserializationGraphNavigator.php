@@ -22,6 +22,7 @@ use JMS\Serializer\GraphNavigatorInterface;
 use JMS\Serializer\Handler\HandlerRegistryInterface;
 use JMS\Serializer\Metadata\ClassMetadata;
 use JMS\Serializer\NullAwareVisitorInterface;
+use JMS\Serializer\Selector\PropertySelectorInterface;
 use JMS\Serializer\Visitor\DeserializationVisitorInterface;
 use Metadata\MetadataFactoryInterface;
 
@@ -58,12 +59,17 @@ final class DeserializationGraphNavigator extends GraphNavigator implements Grap
      * @var AccessorStrategyInterface
      */
     private $accessor;
+    /**
+     * @var PropertySelectorInterface
+     */
+    private $selector;
 
     public function __construct(
         MetadataFactoryInterface $metadataFactory,
         HandlerRegistryInterface $handlerRegistry,
         ObjectConstructorInterface $objectConstructor,
         AccessorStrategyInterface $accessor,
+        PropertySelectorInterface $selector,
         EventDispatcherInterface $dispatcher = null,
         ExpressionEvaluatorInterface $expressionEvaluator = null
     ) {
@@ -75,6 +81,7 @@ final class DeserializationGraphNavigator extends GraphNavigator implements Grap
         if ($expressionEvaluator) {
             $this->expressionExclusionStrategy = new ExpressionLanguageExclusionStrategy($expressionEvaluator);
         }
+        $this->selector = $selector;
     }
 
     /**
@@ -166,19 +173,9 @@ final class DeserializationGraphNavigator extends GraphNavigator implements Grap
                 $object = $this->objectConstructor->construct($this->visitor, $metadata, $data, $type, $this->context);
 
                 $this->visitor->startVisitingObject($metadata, $object, $type);
-                foreach ($metadata->propertyMetadata as $propertyMetadata) {
-                    if ($this->exclusionStrategy->shouldSkipProperty($propertyMetadata, $this->context)) {
-                        continue;
-                    }
 
-                    if (null !== $this->expressionExclusionStrategy && $this->expressionExclusionStrategy->shouldSkipProperty($propertyMetadata, $this->context)) {
-                        continue;
-                    }
-
-                    if ($propertyMetadata->readOnly) {
-                        continue;
-                    }
-
+                $properties = $this->selector->select($metadata);
+                foreach ($properties as $propertyMetadata) {
                     $this->context->pushPropertyMetadata($propertyMetadata);
                     try {
                         $v = $this->visitor->visitProperty($propertyMetadata, $data);

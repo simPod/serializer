@@ -120,7 +120,7 @@ final class Serializer implements SerializerInterface, ArrayTransformerInterface
         return null;
     }
 
-    private function getNavigator(int $direction): GraphNavigatorInterface
+    private function getNavigator(int $direction, Context $context): GraphNavigatorInterface
     {
         if (!isset($this->graphNavigators[$direction])) {
             throw new RuntimeException(
@@ -131,7 +131,7 @@ final class Serializer implements SerializerInterface, ArrayTransformerInterface
             );
         }
 
-        return $this->graphNavigators[$direction]->getGraphNavigator();
+        return $this->graphNavigators[$direction]->getGraphNavigator($context);
     }
 
     private function getVisitor(int $direction, string $format): VisitorInterface
@@ -158,7 +158,7 @@ final class Serializer implements SerializerInterface, ArrayTransformerInterface
         }
 
         $visitor = $this->getVisitor(GraphNavigatorInterface::DIRECTION_SERIALIZATION, $format);
-        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_SERIALIZATION);
+        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_SERIALIZATION, $context);
 
         $type = $this->findInitialType($type, $context);
 
@@ -173,7 +173,7 @@ final class Serializer implements SerializerInterface, ArrayTransformerInterface
         }
 
         $visitor = $this->getVisitor(GraphNavigatorInterface::DIRECTION_DESERIALIZATION, $format);
-        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_DESERIALIZATION);
+        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_DESERIALIZATION, $context);
 
         $result = $this->visit($navigator, $visitor, $context, $data, $format, $type);
 
@@ -190,7 +190,7 @@ final class Serializer implements SerializerInterface, ArrayTransformerInterface
         }
 
         $visitor = $this->getVisitor(GraphNavigatorInterface::DIRECTION_SERIALIZATION, 'json');
-        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_SERIALIZATION);
+        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_SERIALIZATION, $context);
 
         $type = $this->findInitialType($type, $context);
         $result = $this->visit($navigator, $visitor, $context, $data, 'json', $type);
@@ -217,7 +217,7 @@ final class Serializer implements SerializerInterface, ArrayTransformerInterface
         }
 
         $visitor = $this->getVisitor(GraphNavigatorInterface::DIRECTION_DESERIALIZATION, 'json');
-        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_DESERIALIZATION);
+        $navigator = $this->getNavigator(GraphNavigatorInterface::DIRECTION_DESERIALIZATION, $context);
 
         return $this->visit($navigator, $visitor, $context, $data, 'json', $type, false);
     }

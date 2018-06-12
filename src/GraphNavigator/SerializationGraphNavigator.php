@@ -22,6 +22,7 @@ use JMS\Serializer\GraphNavigatorInterface;
 use JMS\Serializer\Handler\HandlerRegistryInterface;
 use JMS\Serializer\Metadata\ClassMetadata;
 use JMS\Serializer\NullAwareVisitorInterface;
+use JMS\Serializer\Selector\PropertySelectorInterface;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\Visitor\SerializationVisitorInterface;
 use JMS\Serializer\VisitorInterface;
@@ -64,11 +65,16 @@ final class SerializationGraphNavigator extends GraphNavigator implements GraphN
      * @var bool
      */
     private $shouldSerializeNull;
+    /**
+     * @var PropertySelectorInterface
+     */
+    private $selector;
 
     public function __construct(
         MetadataFactoryInterface $metadataFactory,
         HandlerRegistryInterface $handlerRegistry,
         AccessorStrategyInterface $accessor,
+        PropertySelectorInterface $selector,
         EventDispatcherInterface $dispatcher = null,
         ExpressionEvaluatorInterface $expressionEvaluator = null
     ) {
@@ -80,6 +86,7 @@ final class SerializationGraphNavigator extends GraphNavigator implements GraphN
         if ($expressionEvaluator) {
             $this->expressionExclusionStrategy = new ExpressionLanguageExclusionStrategy($expressionEvaluator);
         }
+        $this->selector = $selector;
     }
 
     public function initialize(VisitorInterface $visitor, Context $context): void
@@ -206,15 +213,9 @@ final class SerializationGraphNavigator extends GraphNavigator implements GraphN
                 }
 
                 $this->visitor->startVisitingObject($metadata, $data, $type);
-                foreach ($metadata->propertyMetadata as $propertyMetadata) {
-                    if ($this->exclusionStrategy->shouldSkipProperty($propertyMetadata, $this->context)) {
-                        continue;
-                    }
 
-                    if (null !== $this->expressionExclusionStrategy && $this->expressionExclusionStrategy->shouldSkipProperty($propertyMetadata, $this->context)) {
-                        continue;
-                    }
-
+                $properties = $this->selector->select($metadata);
+                foreach ($properties as $propertyMetadata) {
                     $v = $this->accessor->getValue($data, $propertyMetadata);
 
                     if (null === $v && $this->shouldSerializeNull !== true) {

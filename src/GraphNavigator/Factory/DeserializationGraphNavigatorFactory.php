@@ -4,11 +4,13 @@ namespace JMS\Serializer\GraphNavigator\Factory;
 
 use JMS\Serializer\Accessor\AccessorStrategyInterface;
 use JMS\Serializer\Construction\ObjectConstructorInterface;
+use JMS\Serializer\Context;
 use JMS\Serializer\EventDispatcher\EventDispatcherInterface;
 use JMS\Serializer\Expression\ExpressionEvaluatorInterface;
 use JMS\Serializer\GraphNavigator\DeserializationGraphNavigator;
 use JMS\Serializer\GraphNavigatorInterface;
 use JMS\Serializer\Handler\HandlerRegistryInterface;
+use JMS\Serializer\Selector\DefaultPropertySelector;
 use Metadata\MetadataFactoryInterface;
 
 final class DeserializationGraphNavigatorFactory implements GraphNavigatorFactoryInterface
@@ -56,8 +58,10 @@ final class DeserializationGraphNavigatorFactory implements GraphNavigatorFactor
         $this->expressionEvaluator = $expressionEvaluator;
     }
 
-    public function getGraphNavigator(): GraphNavigatorInterface
+    public function getGraphNavigator(Context $context): GraphNavigatorInterface
     {
-        return new DeserializationGraphNavigator($this->metadataFactory, $this->handlerRegistry, $this->objectConstructor, $this->accessor, $this->dispatcher, $this->expressionEvaluator);
+        $selector = new DefaultPropertySelector($context, $this->expressionEvaluator);
+
+        return new DeserializationGraphNavigator($this->metadataFactory, $this->handlerRegistry, $this->objectConstructor, $this->accessor, $selector, $this->dispatcher, $this->expressionEvaluator);
     }
 }
