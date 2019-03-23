@@ -1139,6 +1139,56 @@ abstract class BaseSerializationTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function testAdvancedGroupsWithPreviousGroupFallback()
+    {
+        $adrien = new GroupsUser(
+            'John',
+            new GroupsUser(
+                'John Manager',
+                null,
+                [
+                    new GroupsUser(
+                        'John Manager friend 1',
+                        new GroupsUser('John Manager friend 1 manager')
+                    ),
+                    new GroupsUser('John Manager friend 2'),
+                ]
+            ),
+            [
+                new GroupsUser(
+                    'John friend 1',
+                    new GroupsUser('John friend 1 manager')
+                ),
+                new GroupsUser(
+                    'John friend 2',
+                    new GroupsUser('John friend 2 manager')
+                ),
+            ]
+        );
+        self::assertEquals(
+            $this->getContent('groups_advanced_v2'),
+            $this->serializer->serialize(
+                $adrien,
+                $this->getFormat(),
+                SerializationContext::create()->setGroups([
+                    '__fallback' => null,
+                    GroupsExclusionStrategy::DEFAULT_GROUP,
+                    'manager_group',
+                    'friends_group',
+                    'manager' => [
+                        GroupsExclusionStrategy::DEFAULT_GROUP,
+                        'friends_group',
+                        'friends' => ['nickname_group'],
+                    ],
+                    'friends' => [
+                        'manager_group',
+                        'nickname_group',
+                    ],
+                ])
+            )
+        );
+    }
+
     /**
      * @expectedException JMS\Serializer\Exception\InvalidArgumentException
      * @expectedExceptionMessage Invalid group name "foo, bar" on "JMS\Serializer\Tests\Fixtures\InvalidGroupsObject->foo", did you mean to create multiple groups?

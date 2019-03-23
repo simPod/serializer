@@ -1,0 +1,17 @@
+name: John
+manager:
+    name: 'John Manager'
+    friends:
+        -
+            nickname: nickname
+        -
+            nickname: nickname
+friends:
+    -
+        nickname: nickname
+        manager:
+            nickname: nickname
+    -
+        nickname: nickname
+        manager:
+            nickname: nickname

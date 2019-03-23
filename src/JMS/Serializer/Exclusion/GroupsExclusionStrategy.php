@@ -11,9 +11,10 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
     const DEFAULT_GROUP = 'Default';
 
     private $groups = array();
+    private $fallback = false;
     private $nestedGroups = false;
 
-    public function __construct(array $groups)
+    public function __construct(array $groups, $fallback = array(self::DEFAULT_GROUP))
     {
         if (empty($groups)) {
             $groups = array(self::DEFAULT_GROUP);
@@ -28,6 +29,10 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
 
         if ($this->nestedGroups) {
             $this->groups = $groups;
+            $this->fallback = $fallback;
+            if (array_key_exists('__fallback', $groups)) {
+                $this->fallback = $groups['__fallback'];
+            }
         } else {
             foreach ($groups as $group) {
                 $this->groups[$group] = true;
@@ -89,8 +94,8 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
         $groups = $this->groups;
         foreach ($paths as $index => $path) {
             if (!array_key_exists($path, $groups)) {
-                if ($index > 0) {
-                    $groups = array(self::DEFAULT_GROUP);
+                if (!empty($this->fallback)) {
+                    $groups = $this->fallback;
                 }
 
                 break;
