@@ -11,7 +11,9 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
     const DEFAULT_GROUP = 'Default';
 
     private $groups = array();
+
     private $fallback = false;
+
     private $nestedGroups = false;
 
     public function __construct(array $groups, $fallback = array(self::DEFAULT_GROUP))
@@ -28,11 +30,14 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
         }
 
         if ($this->nestedGroups) {
-            $this->groups = $groups;
-            $this->fallback = $fallback;
             if (array_key_exists('__fallback', $groups)) {
                 $this->fallback = $groups['__fallback'];
+                unset($groups['__fallback']);
+            } else {
+                $this->fallback = $fallback;
             }
+
+            $this->groups = $groups;
         } else {
             foreach ($groups as $group) {
                 $this->groups[$group] = true;
@@ -87,11 +92,16 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
         return true;
     }
 
-    private function getGroupsFor(Context $navigatorContext)
+    public function getGroupsFor(Context $navigatorContext)
     {
-        $paths = $navigatorContext->getCurrentPath();
+        if (!$this->nestedGroups) {
+            return array_keys($this->groups);
+        }
 
+        $paths = $navigatorContext->getCurrentPath();
         $groups = $this->groups;
+        $single = array_filter($groups, 'is_scalar');
+
         foreach ($paths as $index => $path) {
             if (!array_key_exists($path, $groups)) {
                 if (!empty($this->fallback)) {
@@ -100,8 +110,14 @@ class GroupsExclusionStrategy implements ExclusionStrategyInterface
 
                 break;
             }
-
             $groups = $groups[$path];
+
+            $newSingle = array_filter($groups, 'is_scalar');
+            if (!count($newSingle)) {
+                $groups = $single + $groups;
+            } else {
+                $single = $newSingle;
+            }
         }
 
         return $groups;
