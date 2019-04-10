@@ -1130,9 +1130,9 @@ abstract class BaseSerializationTest extends TestCase
         );
     }
 
-    public function testAdvancedGroups()
+    private function getAdvancedGroupsUser(): GroupsUser
     {
-        $adrien = new GroupsUser(
+        return new GroupsUser(
             'John',
             new GroupsUser(
                 'John Manager',
@@ -1156,6 +1156,10 @@ abstract class BaseSerializationTest extends TestCase
                 ),
             ]
         );
+    }
+    public function testAdvancedGroups()
+    {
+        $adrien = $this->getAdvancedGroupsUser();
 
         self::assertEquals(
             $this->getContent('groups_advanced'),
@@ -1163,6 +1167,36 @@ abstract class BaseSerializationTest extends TestCase
                 $adrien,
                 $this->getFormat(),
                 SerializationContext::create()->setGroups([
+                    GroupsExclusionStrategy::DEFAULT_GROUP,
+                    'manager_group',
+                    'friends_group',
+
+                    'manager' => [
+                        GroupsExclusionStrategy::DEFAULT_GROUP,
+                        'friends_group',
+
+                        'friends' => ['nickname_group'],
+                    ],
+                    'friends' => [
+                        'manager_group',
+                        'nickname_group',
+                    ],
+                ])
+            )
+        );
+    }
+
+    public function testAdvancedGroupsWithPreviousGroupFallback()
+    {
+        $adrien = $adrien = $this->getAdvancedGroupsUser();
+
+        self::assertEquals(
+            $this->getContent('groups_advanced_v1'),
+            $this->serializer->serialize(
+                $adrien,
+                $this->getFormat(),
+                SerializationContext::create()->setGroups([
+                    '__fallback' => [GroupsExclusionStrategy::DEFAULT_GROUP],
                     GroupsExclusionStrategy::DEFAULT_GROUP,
                     'manager_group',
                     'friends_group',

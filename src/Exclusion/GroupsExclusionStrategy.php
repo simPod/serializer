@@ -18,6 +18,8 @@ final class GroupsExclusionStrategy implements ExclusionStrategyInterface
      */
     private $groups = [];
 
+    private $fallback = null;
+
     /**
      * @var bool
      */
@@ -37,6 +39,11 @@ final class GroupsExclusionStrategy implements ExclusionStrategyInterface
         }
 
         if ($this->nestedGroups) {
+            if (array_key_exists('__fallback', $groups)) {
+                $this->fallback = $groups['__fallback'];
+                unset($groups['__fallback']);
+            }
+
             $this->groups = $groups;
         } else {
             foreach ($groups as $group) {
@@ -91,21 +98,38 @@ final class GroupsExclusionStrategy implements ExclusionStrategyInterface
         return true;
     }
 
-    private function getGroupsFor(Context $navigatorContext): array
+    public function getGroupsFor(Context $navigatorContext): array
     {
-        $paths = $navigatorContext->getCurrentPath();
+        if (!$this->nestedGroups) {
+            return array_keys($this->groups);
+        }
 
+        $paths = $navigatorContext->getCurrentPath();
         $groups = $this->groups;
+        $single = array_filter($groups, 'is_scalar');
+
         foreach ($paths as $index => $path) {
             if (!array_key_exists($path, $groups)) {
+                if (!empty($this->fallback)) {
+                    $groups = $this->fallback;
+                } elseif ($index === 0) {
+                    $groups = $single;
+                }
+
                 break;
             }
 
             if (!is_array($groups[$path])) {
                 throw new RuntimeException(sprintf('The group value for the property path "%s" should be an array, "%s" given', $index, gettype($groups[$path])));
             }
-
             $groups = $groups[$path];
+
+            $newSingle = array_filter($groups, 'is_scalar');
+            if (!count($newSingle)) {
+                $groups = $single + $groups;
+            } else {
+                $single = $newSingle;
+            }
         }
 
         return $groups;
